@@ -1,41 +1,61 @@
 class Game {
-    constructor() {
+
+    constructor(numPlayers = 1) {
+
+        // Instance variables start with this.
         this.canvas = document.getElementById('gameCanvas');
         this.ctx = this.canvas.getContext('2d');
         this.score = 0;
+        this.instanceVariable = 0;
+        this.currentRotation = 0;  // in radians
+        this.targetRotation = 0;  // in radians
+        
+        // Object to track keys pressed
+        this.keysPressed = {};
 
-        // Define the shapes (example rectangles here)
-        this.shapes = [
-            { x: 50, y: 50, width: 50, height: 50, name: 'Main' },
-            { x: 150, y: 150, width: 50, height: 50, name: 'collectable' },
-            { x: 250, y: 250, width: 50, height: 50, name: 'collectable' }
+        // Handle keyboard input
+        document.addEventListener('keydown', (e) => {
+            this.keysPressed[e.code] = true;
+            this.handleInput();
+        });
+
+        document.addEventListener('keyup', (e) => {
+            delete this.keysPressed[e.code];
+        });
+
+        // Create players based on input
+        const playerConfigs = [
+            { color: 'red', playerControls: 'ARROW_KEYS', startingPosition: { x: 0, y: 0 }, startingDirection: 'right' },
+            { color: 'blue', playerControls: 'WASD', startingPosition: { x: 10, y: 10 }, startingDirection: 'right' },
+            { color: 'green', playerControls: 'EQUAL_BRACKETS', startingPosition: { x: 20, y: 20 }, startingDirection: 'right' },
+            { color: 'yellow', playerControls: 'QWE2', startingPosition: { x: 30, y: 30 }, startingDirection: 'right' }
         ];
+
+        this.players = [];
+
+        for (let i = 0; i < numPlayers; i++) {
+            const config = playerConfigs[i];
+            this.players.push(new Player(config.color, config.playerControls, config.startingPosition, config.startingDirection));
+        }
 
         // Start game loop
         this.update();
-
-        // Handle keyboard input
-        document.addEventListener('keydown', (e) => this.handleInput(e));
     }
 
     redraw() {
         // Clear the canvas
         this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
 
-        // Draw each shape
-        for (const shape of this.shapes) {
-            this.ctx.fillRect(shape.x, shape.y, shape.width, shape.height);
-        }
     }
 
     handleInput(e) {
-        // Example: Move the first shape to the right when the right arrow key is pressed
-        if (e.key === 'ArrowRight') {
-            this.shapes[0].x += 10;
-        } else if (e.key === 'ArrowDown') {
-            this.shapes[0].y += 10;
-        }
-        // ... You can add more controls here.
+        this.players.forEach(player => {
+            for (const key in this.keysPressed) {
+                if (this.keysPressed[key]) {
+                    player.move(key);
+                }
+            }
+        });
     }
 
     checkCollision(obj1, obj2) {
@@ -49,16 +69,89 @@ class Game {
     update() {
         this.redraw();
 
-        // Example collision check between the first and second shapes
-        if (this.checkCollision(this.shapes[0], this.shapes[1])) {
-            console.log('Collision detected between shape 1 and 2!');
+        const ROTATION_STEP = Math.PI / (2 * 6);  // Half Pi divided by number of frames (6 in this case)
 
-            // Increase the score
-            this.incorrectScoreVariableNameChangeThisTo_score++;
+        this.players.forEach(player => {
+            if (player.currentRotation !== player.targetRotation) {
+                if (Math.abs(player.targetRotation - player.currentRotation) <= ROTATION_STEP) {
+                    player.currentRotation = player.targetRotation;
+                } else if (player.targetRotation > player.currentRotation) {
+                    player.currentRotation += ROTATION_STEP;
+                } else {
+                    player.currentRotation -= ROTATION_STEP;
+                }
+            }
+        });
+        // Move players
+        this.players.forEach(player => {
+            switch (player.direction) {
+                case 'up':
+                    player.position.y--;
+                    break;
+                case 'down':
+                    player.position.y++;
+                    break;
+                case 'left':
+                    player.position.x--;
+                    break;
+                case 'right':
+                    player.position.x++;
+                    break;
+                default:
+                    break;
+            }
 
-            // Remove the second shape from the array
-            this.shapes.splice(1, 1);
-        }
+                 // Set the context's filter to adjust the sprite's hue to match the player's color.
+            // This is a simple example; you might need a more complex filter based on your specific colors.
+            switch (player.color) {
+                case 'red':
+                    this.ctx.filter = 'hue-rotate(0deg)';
+                    break;
+                case 'blue':
+                    this.ctx.filter = 'hue-rotate(240deg)';
+                    break;
+                case 'green':
+                    this.ctx.filter = 'hue-rotate(120deg)';
+                    break;
+                case 'yellow':
+                    this.ctx.filter = 'hue-rotate(60deg)';
+                    break;
+                default:
+                    this.ctx.filter = 'none';
+            }
+
+            // Save the current context state
+            this.ctx.save();
+
+            // Translate to the player's position
+            this.ctx.translate(player.position.x + 32, player.position.y + 32); // 32 is half the sprite size to ensure rotation is around the center
+
+            // Rotate based on direction
+            switch (player.direction) {
+                case 'up':
+                    this.ctx.rotate(-Math.PI / 2);
+                    break;
+                case 'down':
+                    this.ctx.rotate(Math.PI / 2); // 180 degrees
+                    break;
+                case 'left':
+                    this.ctx.rotate(Math.PI); // -90 degrees
+                    break;
+                case 'right':
+                    this.ctx.rotate(0); // 90 degrees
+                    break;
+            }
+
+            // Remove the old switch that was directly modifying rotation based on the direction. 
+            // Instead, use the interpolated currentRotation:
+            this.ctx.rotate(player.currentRotation);
+            // Draw the image
+            this.ctx.drawImage(player.sprite, -32, -32, 64, 64); // draw the sprite centered on the player's position
+
+            // Restore the context to its previous state
+            this.ctx.restore();
+        });
+
 
         // Use requestAnimationFrame for smooth animations
         requestAnimationFrame(() => this.update());

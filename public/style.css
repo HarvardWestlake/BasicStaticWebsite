@@ -21,3 +21,9 @@ body {
 #section3 {
     background-color: #e6ffe6;
 }
+
+
+canvas:fullscreen {
+    width: 100%;
+    height: 100%;
+}
