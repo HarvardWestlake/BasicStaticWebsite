@@ -15,7 +15,8 @@ class Player {
         this.bike = bike;
         this.sprite = new Image(); // assuming the sprite is an image
         this.sprite.src = 'sprites/bike.png'; // change this path to your sprite's location
-    
+        this.trail = [];
+        this.size = 1;
     }
 
     move(direction) {

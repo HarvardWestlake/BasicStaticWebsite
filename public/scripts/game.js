@@ -10,6 +10,8 @@ class Game {
         this.currentRotation = 0;  // in radians
         this.targetRotation = 0;  // in radians
         
+        this.gameRunning = true;
+        
         // Object to track keys pressed
         this.keysPressed = {};
 
@@ -67,6 +69,10 @@ class Game {
     }
 
     update() {
+        
+      if (!this.gameRunning) return;
+      // Insert a menu here if the gameplay stops.
+      
         this.redraw();
 
         const ROTATION_STEP = Math.PI / (2 * 6);  // Half Pi divided by number of frames (6 in this case)
@@ -82,6 +88,7 @@ class Game {
                 }
             }
         });
+
         // Move players
         this.players.forEach(player => {
             switch (player.direction) {
@@ -101,7 +108,33 @@ class Game {
                     break;
             }
 
-                 // Set the context's filter to adjust the sprite's hue to match the player's color.
+        });
+
+        
+        // Check collisions
+        let self = this;
+        this.players.forEach(player => {
+            
+             // Check for collision with all trails
+             for (const otherPlayer of self.players) {
+                for (const segment of otherPlayer.trail) {
+                    if (
+                        player.position.x < segment.x + player.size &&
+                        player.position.x + player.size > segment.x &&
+                        player.position.y < segment.y + player.size &&
+                        player.position.y + player.size > segment.y
+                    ) {
+                        this.gameRunning = false;
+                        // TODO - allow for ties in the player check before crashing
+                        alert(`${player.color} player crashed! Game Over.`);
+                        return;
+                    }
+                }
+            }
+            // Add current position to trail
+            player.trail.push({ x: player.position.x, y: player.position.y });
+
+            // Set the context's filter to adjust the sprite's hue to match the player's color.
             // This is a simple example; you might need a more complex filter based on your specific colors.
             switch (player.color) {
                 case 'red':
@@ -130,26 +163,36 @@ class Game {
             switch (player.direction) {
                 case 'up':
                     this.ctx.rotate(-Math.PI / 2);
+                    this.ctx.drawImage(player.sprite, 0,-64, 64, 64);
                     break;
                 case 'down':
                     this.ctx.rotate(Math.PI / 2); // 180 degrees
+                    this.ctx.drawImage(player.sprite, -64, 0, 64, 64);
                     break;
                 case 'left':
                     this.ctx.rotate(Math.PI); // -90 degrees
+                    this.ctx.drawImage(player.sprite, 0, 0, 64, 64); 
                     break;
                 case 'right':
                     this.ctx.rotate(0); // 90 degrees
+                    this.ctx.drawImage(player.sprite, -64, -64, 64, 64); 
                     break;
             }
-
+            
             // Remove the old switch that was directly modifying rotation based on the direction. 
             // Instead, use the interpolated currentRotation:
             this.ctx.rotate(player.currentRotation);
-            // Draw the image
-            this.ctx.drawImage(player.sprite, -32, -32, 64, 64); // draw the sprite centered on the player's position
+
 
             // Restore the context to its previous state
             this.ctx.restore();
+
+            // Draw the trail
+            this.ctx.fillStyle = player.color;
+            for (const segment of player.trail) {
+                this.ctx.fillRect(segment.x, segment.y, player.size, player.size);
+            }
+
         });
 
 
