@@ -12,6 +12,14 @@ class Game {
         
         this.gameRunning = true;
         
+        this.trailSize = 1;
+        this.gridWidth = this.canvas.width / this.trailSize;
+        this.gridHeight = this.canvas.height / this.trailSize;
+
+        // Initialize the grid
+        this.grid = Array.from({ length: this.gridHeight }, () => Array(this.gridWidth).fill(null));
+
+        
         // Object to track keys pressed
         this.keysPressed = {};
 
@@ -88,6 +96,7 @@ class Game {
                 }
             }
         });
+        
 
         // Move players
         this.players.forEach(player => {
@@ -115,22 +124,21 @@ class Game {
         let self = this;
         this.players.forEach(player => {
             
-             // Check for collision with all trails
-             for (const otherPlayer of self.players) {
-                for (const segment of otherPlayer.trail) {
-                    if (
-                        player.position.x < segment.x + player.size &&
-                        player.position.x + player.size > segment.x &&
-                        player.position.y < segment.y + player.size &&
-                        player.position.y + player.size > segment.y
-                    ) {
-                        this.gameRunning = false;
-                        // TODO - allow for ties in the player check before crashing
-                        alert(`${player.color} player crashed! Game Over.`);
-                        return;
-                    }
-                }
+            const gridX = Math.floor(player.position.x / self.trailSize);
+            const gridY = Math.floor(player.position.y / self.trailSize);
+
+            // Check for collision using the grid
+            if (self.grid[gridY] && self.grid[gridY][gridX] !== null) {
+                this.gameRunning = false;
+                alert(`${player.color} player crashed! Game Over.`);
+                return;
             }
+
+            // Update the grid with the player's trail
+            if (self.grid[gridY]) {
+                self.grid[gridY][gridX] = player.color;
+            }
+
             // Add current position to trail
             player.trail.push({ x: player.position.x, y: player.position.y });
 
