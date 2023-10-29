@@ -17,6 +17,8 @@ class Player {
         this.sprite.src = 'sprites/bike.png'; // change this path to your sprite's location
         this.trail = [];
         this.size = 1;
+        this.spriteSize = 32;
+        this.trailSize = 1; // Not currently linked.  TODO - replace this.size
     }
 
     move(direction) {

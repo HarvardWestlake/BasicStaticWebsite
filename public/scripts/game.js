@@ -19,7 +19,11 @@ class Game {
         // Initialize the grid
         this.grid = Array.from({ length: this.gridHeight }, () => Array(this.gridWidth).fill(null));
 
-        
+        this.offScreenCanvas = document.createElement('canvas');
+        this.offScreenCanvas.width = this.canvas.width;
+        this.offScreenCanvas.height = this.canvas.height;
+        this.offScreenCtx = this.offScreenCanvas.getContext('2d');
+
         // Object to track keys pressed
         this.keysPressed = {};
 
@@ -48,13 +52,22 @@ class Game {
             this.players.push(new Player(config.color, config.playerControls, config.startingPosition, config.startingDirection));
         }
 
-        // Start game loop
+        this.startGame();
+    }
+
+    startGame() {
+        // Clear the main canvas and the off-screen canvas
+        this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+        this.offScreenCtx.clearRect(0, 0, this.offScreenCanvas.width, this.offScreenCanvas.height);
         this.update();
     }
 
     redraw() {
-        // Clear the canvas
+        // // Clear the canvas
         this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+        
+        // Copy the entire off-screen canvas to the main canvas
+        this.ctx.drawImage(this.offScreenCanvas, 0, 0);
 
     }
 
@@ -165,25 +178,25 @@ class Game {
             this.ctx.save();
 
             // Translate to the player's position
-            this.ctx.translate(player.position.x + 32, player.position.y + 32); // 32 is half the sprite size to ensure rotation is around the center
+            this.ctx.translate(player.position.x + (player.spriteSize/2), player.position.y + (player.spriteSize/2)); // 32 is half the sprite size to ensure rotation is around the center
 
             // Rotate based on direction
             switch (player.direction) {
                 case 'up':
                     this.ctx.rotate(-Math.PI / 2);
-                    this.ctx.drawImage(player.sprite, 0,-64, 64, 64);
+                    this.ctx.drawImage(player.sprite, 0,-player.spriteSize, player.spriteSize, player.spriteSize);
                     break;
                 case 'down':
                     this.ctx.rotate(Math.PI / 2); // 180 degrees
-                    this.ctx.drawImage(player.sprite, -64, 0, 64, 64);
+                    this.ctx.drawImage(player.sprite, -player.spriteSize, 0, player.spriteSize, player.spriteSize);
                     break;
                 case 'left':
                     this.ctx.rotate(Math.PI); // -90 degrees
-                    this.ctx.drawImage(player.sprite, 0, 0, 64, 64); 
+                    this.ctx.drawImage(player.sprite, 0, 0, player.spriteSize, player.spriteSize); 
                     break;
                 case 'right':
                     this.ctx.rotate(0); // 90 degrees
-                    this.ctx.drawImage(player.sprite, -64, -64, 64, 64); 
+                    this.ctx.drawImage(player.sprite, -player.spriteSize, -player.spriteSize, player.spriteSize, player.spriteSize); 
                     break;
             }
             
@@ -195,11 +208,15 @@ class Game {
             // Restore the context to its previous state
             this.ctx.restore();
 
-            // Draw the trail
-            this.ctx.fillStyle = player.color;
-            for (const segment of player.trail) {
-                this.ctx.fillRect(segment.x, segment.y, player.size, player.size);
-            }
+            
+            // Draw the new trail segment on the off-screen canvas
+            this.offScreenCtx.fillStyle = player.color;
+            this.offScreenCtx.fillRect(gridX * this.trailSize, gridY * this.trailSize, this.trailSize, this.trailSize);
+            // // Draw the trail
+            // this.ctx.fillStyle = player.color;
+            // for (const segment of player.trail) {
+            //     this.ctx.fillRect(segment.x, segment.y, player.size, player.size);
+            // }
 
         });
 
